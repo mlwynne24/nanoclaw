@@ -17,21 +17,25 @@ setRegisteredGroup(JID, {
   containerConfig: {
     additionalMounts: [
       {
-        hostPath: '~/repos/recipes-db',
-        containerPath: 'recipes-db',
+        hostPath: '~/.databases/recipes.db',
+        containerPath: 'recipes.db',
         readonly: false,
-        excludePaths: ['.venv'],
       },
     ],
     secretKeys: [
       'VOYAGE_API_KEY',
       'SHOP_TESCO_EMAIL',
       'SHOP_TESCO_PASSWORD',
+      'SHOP_OCADO_EMAIL',
+      'SHOP_OCADO_PASSWORD',
     ],
     envKeys: [
       'VOYAGE_API_KEY',
       'SHOP_TESCO_EMAIL',
       'SHOP_TESCO_PASSWORD',
+      'SHOP_OCADO_EMAIL',
+      'SHOP_OCADO_PASSWORD',
+      'DATABASE_PATH',
     ],
     timeout: 600000,
   },
