@@ -2,6 +2,7 @@ export interface AdditionalMount {
   hostPath: string; // Absolute path on host (supports ~ for home)
   containerPath?: string; // Optional — defaults to basename of hostPath. Mounted at /workspace/extra/{value}
   readonly?: boolean; // Default: true for safety
+  excludePaths?: string[]; // Subdirectories to shadow with empty tmpfs (e.g. ['.venv'])
 }
 
 /**
@@ -30,6 +31,8 @@ export interface AllowedRoot {
 export interface ContainerConfig {
   additionalMounts?: AdditionalMount[];
   timeout?: number; // Default: 300000 (5 minutes)
+  secretKeys?: string[]; // Extra .env keys to read and pass via stdin (SDK-only)
+  envKeys?: string[]; // Keys from secrets to also set in container process.env (Bash-visible)
 }
 
 export interface RegisteredGroup {

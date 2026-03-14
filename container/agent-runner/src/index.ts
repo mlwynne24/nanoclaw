@@ -28,6 +28,7 @@ interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   secrets?: Record<string, string>;
+  envKeys?: string[];
 }
 
 interface ContainerOutput {
@@ -513,6 +514,14 @@ async function main(): Promise<void> {
   const sdkEnv: Record<string, string | undefined> = { ...process.env };
   for (const [key, value] of Object.entries(containerInput.secrets || {})) {
     sdkEnv[key] = value;
+  }
+
+  // Expose selected secrets to Bash subprocesses (e.g. Python scripts needing API keys)
+  for (const key of containerInput.envKeys || []) {
+    const value = containerInput.secrets?.[key];
+    if (value) {
+      process.env[key] = value;
+    }
   }
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));

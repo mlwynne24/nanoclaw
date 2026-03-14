@@ -39,6 +39,7 @@ export interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   secrets?: Record<string, string>;
+  envKeys?: string[];
 }
 
 export interface ContainerOutput {
@@ -52,6 +53,7 @@ interface VolumeMount {
   hostPath: string;
   containerPath: string;
   readonly: boolean;
+  excludePaths?: string[];
 }
 
 function buildVolumeMounts(
@@ -214,12 +216,13 @@ function buildVolumeMounts(
  * Read allowed secrets from .env for passing to the container via stdin.
  * Secrets are never written to disk or mounted as files.
  */
-function readSecrets(): Record<string, string> {
+function readSecrets(extraKeys: string[] = []): Record<string, string> {
   return readEnvFile([
     'CLAUDE_CODE_OAUTH_TOKEN',
     'ANTHROPIC_API_KEY',
     'ANTHROPIC_BASE_URL',
     'ANTHROPIC_AUTH_TOKEN',
+    ...extraKeys,
   ]);
 }
 
@@ -247,6 +250,13 @@ function buildContainerArgs(
       args.push(...readonlyMountArgs(mount.hostPath, mount.containerPath));
     } else {
       args.push('-v', `${mount.hostPath}:${mount.containerPath}`);
+    }
+
+    // Shadow excluded subdirectories with empty tmpfs so host content is hidden
+    if (mount.excludePaths) {
+      for (const exclude of mount.excludePaths) {
+        args.push('--tmpfs', `${mount.containerPath}/${exclude}`);
+      }
     }
   }
 
@@ -310,11 +320,13 @@ export async function runContainerAgent(
     let stderrTruncated = false;
 
     // Pass secrets via stdin (never written to disk or mounted as files)
-    input.secrets = readSecrets();
+    input.secrets = readSecrets(group.containerConfig?.secretKeys);
+    input.envKeys = group.containerConfig?.envKeys;
     container.stdin.write(JSON.stringify(input));
     container.stdin.end();
     // Remove secrets from input so they don't appear in logs
     delete input.secrets;
+    delete input.envKeys;
 
     // Streaming output: parse OUTPUT_START/END marker pairs as they arrive
     let parseBuffer = '';
